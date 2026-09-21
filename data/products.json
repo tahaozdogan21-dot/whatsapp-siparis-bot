@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "isim": "Klasik Tişört",
+    "aciklama": "%100 pamuk, unisex kesim",
+    "fiyat": 350,
+    "para_birimi": "TL",
+    "stok": true,
+    "varyantlar": ["S", "M", "L", "XL"]
+  },
+  {
+    "id": "2",
+    "isim": "Kapüşonlu Sweatshirt",
+    "aciklama": "Kalın kumaş, kış sezonu",
+    "fiyat": 650,
+    "para_birimi": "TL",
+    "stok": true,
+    "varyantlar": ["S", "M", "L", "XL", "XXL"]
+  },
+  {
+    "id": "3",
+    "isim": "Şapka",
+    "aciklama": "Ayarlanabilir kayış, tek beden",
+    "fiyat": 180,
+    "para_birimi": "TL",
+    "stok": true,
+    "varyantlar": []
+  }
+]
