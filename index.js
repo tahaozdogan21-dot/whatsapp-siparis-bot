@@ -4,14 +4,17 @@ import path from 'path';
 import pino from 'pino';
 import qrcode from 'qrcode-terminal';
 import Anthropic from '@anthropic-ai/sdk';
-import baileysPkg from '@whiskeysockets/baileys';
+import * as baileysModule from '@whiskeysockets/baileys';
 
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason,
-  fetchLatestBaileysVersion,
-} = baileysPkg;
+const makeWASocket =
+  baileysModule.makeWASocket || baileysModule.default?.makeWASocket || baileysModule.default;
+const useMultiFileAuthState =
+  baileysModule.useMultiFileAuthState || baileysModule.default?.useMultiFileAuthState;
+const DisconnectReason =
+  baileysModule.DisconnectReason || baileysModule.default?.DisconnectReason;
+const fetchLatestBaileysVersion =
+  baileysModule.fetchLatestBaileysVersion || baileysModule.default?.fetchLatestBaileysVersion;
+
 
 // ---------- Ayarlar ----------
 const BUSINESS_NAME = process.env.BUSINESS_NAME || 'Mağazamız';
