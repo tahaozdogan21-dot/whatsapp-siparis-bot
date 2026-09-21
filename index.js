@@ -6,6 +6,8 @@ import qrcode from 'qrcode-terminal';
 import Anthropic from '@anthropic-ai/sdk';
 import * as baileysModule from '@whiskeysockets/baileys';
 
+// Farklı Baileys sürümleri farklı export şekilleri kullanabiliyor,
+// bu yüzden ikisini de destekleyecek şekilde alıyoruz.
 const makeWASocket =
   baileysModule.makeWASocket || baileysModule.default?.makeWASocket || baileysModule.default;
 const useMultiFileAuthState =
@@ -14,13 +16,13 @@ const DisconnectReason =
   baileysModule.DisconnectReason || baileysModule.default?.DisconnectReason;
 const fetchLatestBaileysVersion =
   baileysModule.fetchLatestBaileysVersion || baileysModule.default?.fetchLatestBaileysVersion;
-
+const Browsers = baileysModule.Browsers || baileysModule.default?.Browsers;
 
 // ---------- Ayarlar ----------
 const BUSINESS_NAME = process.env.BUSINESS_NAME || 'Mağazamız';
 const PRODUCTS_PATH = path.join(process.cwd(), 'data', 'products.json');
 const ORDERS_PATH = path.join(process.cwd(), 'data', 'orders.json');
-const HISTORY_LIMIT = 20; // her müşteri için hafızada tutulan son mesaj sayısı
+const HISTORY_LIMIT = 20;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -40,8 +42,6 @@ function saveOrder(order) {
   return kayit;
 }
 
-// Telegram'a sipariş bildirimi gönderir (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID
-// .env'de tanımlıysa). Tanımlı değilse sessizce atlar.
 async function notifyTelegram(order) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -76,7 +76,6 @@ async function notifyTelegram(order) {
   }
 }
 
-// Müşteri numarasına göre konuşma geçmişini bellekte tutuyoruz
 const conversations = new Map();
 
 function getHistory(jid) {
@@ -90,7 +89,6 @@ function pushHistory(jid, role, content) {
   while (hist.length > HISTORY_LIMIT) hist.shift();
 }
 
-// Claude'un sipariş kaydetmek için çağıracağı araç (tool)
 const tools = [
   {
     name: 'siparis_kaydet',
@@ -158,7 +156,6 @@ async function askClaude(jid, userText) {
     messages: getHistory(jid),
   });
 
-  // Claude bir araç çağırmak isterse (sipariş kaydetme), işleyip sonucu tekrar gönderiyoruz
   while (response.stop_reason === 'tool_use') {
     const toolUse = response.content.find((b) => b.type === 'tool_use');
     let toolResult = 'Tamamlandı.';
@@ -199,7 +196,23 @@ async function startBot() {
     auth: state,
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
+    browser: Browsers.ubuntu('Chrome'),
   });
+
+  if (process.env.WHATSAPP_PHONE_NUMBER && !sock.authState.creds.registered) {
+    setTimeout(async () => {
+      try {
+        const phone = process.env.WHATSAPP_PHONE_NUMBER.replace(/[^0-9]/g, '');
+        const code = await sock.requestPairingCode(phone);
+        console.log(`\n📱 Eşleştirme kodu: ${code}\n`);
+        console.log(
+          'Telefonundan: WhatsApp > Ayarlar > Bağlı Cihazlar > Cihaz Bağla > "Telefon numarasıyla bağlan"a geç, bu kodu gir.\n'
+        );
+      } catch (err) {
+        console.error('Eşleştirme kodu alınamadı:', err);
+      }
+    }, 3000);
+  }
 
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
@@ -228,7 +241,7 @@ async function startBot() {
       if (!msg.message || msg.key.fromMe) continue;
 
       const jid = msg.key.remoteJid;
-      if (jid.endsWith('@g.us')) continue; // grup mesajlarını yoksay, sadece bireysel sohbet
+      if (jid.endsWith('@g.us')) continue;
 
       const text =
         msg.message.conversation ||
